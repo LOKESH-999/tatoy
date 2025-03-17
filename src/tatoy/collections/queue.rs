@@ -3,7 +3,7 @@ use std::sync::atomic::Ordering::{Acquire,Release,Relaxed};
 use std::sync::atomic::AtomicPtr;
 use std::alloc::dealloc;
 pub struct Queue<T>{
-    ptr:AtomicPtr<T>,
+    ptr:NonNull<T>,
     head:AtomicUsize,
     tail:AtomicUsize,
     len:AtomicUsize,
@@ -16,9 +16,8 @@ impl<T> Queue<T>{
         let size = 2;
         let layout = Layout::array::<T>(size).unwrap();
         let ptr = unsafe {alloc(layout) as *mut T};
-        assert_ne!(ptr,std::ptr::null_mut(),"allocation err");
         Queue{
-            ptr:AtomicPtr::new(ptr),
+            ptr:NonNull::new(ptr).unwrap(),
             head:AtomicUsize::new(0),
             tail:AtomicUsize::new(0),
             len:AtomicUsize::new(0),
@@ -40,8 +39,8 @@ impl<T> Queue<T>{
 }
 
 impl<T> Queue<T>{
-    pub fn grow(&self){
-        let old_ptr = self.ptr.load(Acquire);
+    pub fn grow(&mut self){
+        let old_ptr = self.ptr.as_ptr();
         let old_size = self.size.load(Acquire);
 
         let new_size = old_size * 2;
@@ -54,7 +53,7 @@ impl<T> Queue<T>{
         let res = self.size.compare_exchange_weak(old_size, new_size, Release, Relaxed);
         match res {
             Ok(_)=>{
-                self.ptr.store(new_ptr,Release);
+                self.ptr = NonNull::new(new_ptr).unwrap();
                 let old_layout = Layout::array::<T>(old_size).unwrap();
                 unsafe { dealloc(old_ptr as *mut u8, old_layout) };
             },
