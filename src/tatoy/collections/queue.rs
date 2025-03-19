@@ -41,15 +41,18 @@ impl<T> Queue<T>{
 
 impl<T> Queue<T>{
     pub fn grow(&self){
+        todo!("wrong impl");
         let old_ptr = self.ptr.load(Acquire);
         let old_size = self.size.load(Acquire);
+        let head = self.head.load(Acquire);
+        let tail = self.tail.load(Acquire);
 
         let new_size = old_size * 2;
         let new_layout = Layout::array::<T>(new_size).unwrap();
         let new_ptr = unsafe { alloc(new_layout) as *mut T };
         assert_ne!(new_ptr,std::ptr::null_mut(),"allocation err");
         unsafe {
-            copy_nonoverlapping(old_ptr, new_ptr , old_size);
+            copy_nonoverlapping(old_ptr, old_ptr.add(head) , old_size);
         }
         let res = self.size.compare_exchange_weak(old_size, new_size, Release, Relaxed);
         match res {
