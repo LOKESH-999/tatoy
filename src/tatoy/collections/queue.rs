@@ -36,35 +36,41 @@ impl <T> Queue<T> {
         }
     }
     pub fn push_front(&mut self,data:T){
-        self.lock();
-        if self.head == 0{
-            if self.len == 0{
-                unsafe { self.ptr.write(data) };
-            }else {
-                self.head = self.size - 1;
+        todo!("groww check")
+    }
+
+    pub fn push_back(&mut self,data:T){}
+
+    pub fn pop_back(&mut self)->Option<T>{
+        todo!()
+    }
+    pub fn pop_front(&mut self)->Option<T>{
+        todo!()
+    }
+}
+
+impl<T> Queue<T>{
+    pub fn grow(&self){
+        let old_ptr = self.ptr.load(Acquire);
+        let old_size = self.size.load(Acquire);
+
+        let new_size = old_size * 2;
+        let new_layout = Layout::array::<T>(new_size).unwrap();
+        let new_ptr = unsafe { alloc(new_layout) as *mut T };
+        assert_ne!(new_ptr,std::ptr::null_mut(),"allocation err");
+        unsafe {
+            copy_nonoverlapping(old_ptr, new_ptr , old_size);
+        }
+        let res = self.size.compare_exchange_weak(old_size, new_size, Release, Relaxed);
+        match res {
+            Ok(_)=>{
+                self.ptr.store(new_ptr,Release);
+                let old_layout = Layout::array::<T>(old_size).unwrap();
+                unsafe { dealloc(old_ptr as *mut u8, old_layout) };
+            },
+            Err(_)=>{
+                unsafe { dealloc(new_ptr as *mut u8, new_layout) };
             }
-        }else {
-            self.head -= 1;
-            unsafe { self.ptr.add(self.head).write(data) };
         }
-        self.len += 1;
-        if self.size - self.len == 1{
-            self.grow()
-        }
-        unsafe { self.unlock() };
-    }
-
-    pub fn lock(&self){
-        while self.state.swap(LOCKED, AcqRel) == LOCKED {
-            thread::yield_now();
-        }
-    }
-
-    unsafe fn unlock(&self){
-        self.state.store(UNLOCKED, Release);
-    }
-
-    fn grow(&mut self){
-
     }
 }
