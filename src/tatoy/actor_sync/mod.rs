@@ -1,1 +1,1 @@
-pub mod actor;
+mod actor;
