@@ -1,2 +1,2 @@
 // mod collections;
-mod actor_sync;
+pub mod actor_sync;
