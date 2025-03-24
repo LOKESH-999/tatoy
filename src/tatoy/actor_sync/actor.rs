@@ -24,8 +24,8 @@ impl<A:Actor+?Sized> Addr<A>{
         self.sender.send(data);
     }
     pub fn sync_Send(&mut self,data:Box<dyn Message>)->Result<(),SendError<Box<dyn Message>>>{
-        self.sender.send(data)
-        // todo!()
+        // self.sender.send(data)e
+        todo!("not yet impl")
     }
 }
 
